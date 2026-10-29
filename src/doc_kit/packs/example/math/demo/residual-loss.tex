@@ -1,0 +1,3 @@
+% Mean squared residual of a PDE, here the heat equation (nested asset; kappa is passed through).
+\exdefaults{kappa=\kappa}
+\mathcal{L}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \Big| \partial_t u_\theta(x_i) - \exparam{kappa}\,\Delta u_\theta(x_i) \Big|^2

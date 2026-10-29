@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doc-kit"
+version = "0.2.0"
+description = "doc-kit: a documentation kit for writing slides and papers from shared math, graphics and plotting assets."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["matplotlib>=3.7", "numpy", "pyyaml>=6"]
+
+[project.optional-dependencies]
+# headless checks, PDF export, math checks and diagram export (also need Firefox)
+tools = ["selenium>=4.20"]
+
+[project.scripts]
+doc-kit = "doc_kit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+doc_kit = ["engine/**/*", "packs/**/*"]

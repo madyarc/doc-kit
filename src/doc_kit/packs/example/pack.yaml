@@ -1,0 +1,13 @@
+# The example pack shipped with doc-kit: a neutral theme and a few demo assets.
+# Copy this folder to start your own pack (keep it anywhere and point DOCKIT_PACKS at its parent,
+# or reference it from a talk with `pack: path/to/yourpack`).
+name: doc-kit example pack
+math: math
+macros: math/macros.tex
+latex:
+  prefix: ex           # \exasset[..]{..}, \exparam{..}, \exdefaults{..}; package ex.sty
+graphics: graphics
+styles:
+  - graphics/theme.css
+footer: doc-kit example
+matplotlib: graphics/matplotlib.mplstyle

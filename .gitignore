@@ -1,0 +1,19 @@
+__pycache__/
+.venv/
+*.pyc
+*.egg-info/
+build/
+out/
+# generated per checkout (absolute paths): doc-kit sty <pack>
+src/doc_kit/packs/*/latex/
+# Talks live outside this repo; only the example talk belongs here.
+talks/*
+!talks/example/
+# LaTeX build files
+papers/**/*.aux
+papers/**/*.log
+papers/**/*.fls
+papers/**/*.fdb_latexmk
+papers/**/*.out
+papers/**/*.synctex.gz
+papers/**/*.pdf

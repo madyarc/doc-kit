@@ -1,0 +1,30 @@
+# Example pack matplotlib style (doc_kit.plots.use_style("example")): system sans, teal accent first.
+font.family:        sans-serif
+font.sans-serif:    DejaVu Sans
+font.size:          10
+mathtext.fontset:   cm
+text.color:         1b1b1a
+axes.labelcolor:    1b1b1a
+axes.titlecolor:    0f172a
+axes.titleweight:   semibold
+axes.titlelocation: left
+axes.edgecolor:     a9a8a0
+axes.spines.top:    False
+axes.spines.right:  False
+axes.grid:          True
+axes.axisbelow:     True
+grid.color:         e1e0d9
+grid.linewidth:     0.6
+xtick.color:        a9a8a0
+ytick.color:        a9a8a0
+xtick.labelcolor:   6b6a66
+ytick.labelcolor:   6b6a66
+axes.prop_cycle:    cycler('color', ['0f766e', 'eb6834', '2a78d6', 'eda100', 'e87ba4', '008300', '6250d6', 'e34948'])
+lines.linewidth:    1.6
+legend.frameon:     False
+figure.figsize:     4.5, 3.0
+figure.dpi:         150
+figure.facecolor:   white
+savefig.bbox:       tight
+svg.fonttype:       path
+pdf.fonttype:       42

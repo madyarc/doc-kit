@@ -1,0 +1,8 @@
+/* Example pack theme: the engine's neutral tokens, with a teal accent. */
+:root, :root[data-theme="light"] { --sk-accent: #0f766e; --sk-accent-soft: rgba(15, 118, 110, 0.12); --sk-heading: #0f172a; }
+:root[data-theme="dark"] { --sk-accent: #2dd4bf; --sk-accent-soft: rgba(45, 212, 191, 0.16); --sk-heading: #f8fafc; }
+.sk-header h1, .sk-header h2 { border-bottom: 3px solid var(--sk-accent); padding-bottom: 6px; display: inline-block; }
+.sk-c-ex-title h1 { font-size: 2.1em; margin: 0 0 16px; color: var(--sk-heading); }
+.sk-c-ex-title p { margin: 0.2em 0; color: var(--sk-muted); }
+.sk-c-ex-title .sk-c-ex-author { color: var(--sk-fg); font-weight: 600; font-size: 1.1em; }
+.sk-c-ex-thanks { font-size: 2em; font-weight: 700; color: var(--sk-heading); }

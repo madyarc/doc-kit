@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>doc-kit graphics export</title>
+<link rel="stylesheet" href="../base.css">
+<link rel="stylesheet" href="../vendor/katex/katex.min.css">
+<script src="../vendor/mermaid.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: var(--sk-bg); }
+  #out { display: inline-block; }
+  #out svg { display: block; }
+  @page { margin: 0; }
+</style>
+<script type="module">
+  // Driven by tools/export_graphics.py.
+  import { mermaidTheme } from '../components.js';
+  const out = () => document.getElementById('out');
+  const loadCss = (href) => new Promise((ok) => {
+    const l = Object.assign(document.createElement('link'), { rel: 'stylesheet', href, onload: ok, onerror: ok });
+    document.head.appendChild(l);
+  });
+  // Pack styles (fonts, theme tokens) so diagrams match the slides.
+  window.usePack = async (styles, theme) => {
+    for (const s of styles) await loadCss(s);
+    document.documentElement.dataset.theme = theme;
+    await document.fonts.ready;
+  };
+  // Resolve a CSS colour (including rgba over the page background) to an opaque hex.
+  const solid = (token) => {
+    const c = document.createElement('canvas').getContext('2d');
+    c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--sk-bg').trim(); c.fillRect(0, 0, 1, 1);
+    c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(token).trim(); c.fillRect(0, 0, 1, 1);
+    const [r, g, b] = c.getImageData(0, 0, 1, 1).data;
+    return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+  };
+  window.renderMermaid = async (src) => {
+    // Standalone SVGs carry no page CSS, so `:::accent` nodes get their colours baked in.
+    // (Renamed, because KaTeX's own `.accent` spans, e.g. \bar, would match a class called "accent".)
+    if (/:::accent\b/.test(src) && !/classDef\s+accent\b/.test(src)) {
+      src = src.replace(/:::accent\b/g, ':::dkAccent');
+      src += `\nclassDef dkAccent fill:${solid('--sk-accent-soft')},stroke:${solid('--sk-accent')},stroke-width:2.5px,color:${solid('--sk-accent')}`;
+    }
+    mermaid.initialize(mermaidTheme());
+    const { svg } = await mermaid.render(`dk${Date.now()}`, src);
+    return svg;
+  };
+  // Show an SVG inline at its natural size; returns [width, height] in CSS px.
+  window.showSvg = async (text) => {
+    out().innerHTML = text;
+    const svg = out().querySelector('svg');
+    const vb = svg.viewBox?.baseVal;
+    let w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
+    if (!(w > 0 && h > 0) || /%$/.test(svg.getAttribute('width') || '')) { w = vb.width; h = vb.height; }
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.style.maxWidth = 'none';
+    await document.fonts.ready;
+    // Exactly one page: the body is the SVG's size and nothing can spill over.
+    const style = document.createElement('style');
+    style.textContent = `@page { size: ${w}px ${h}px; margin: 0; }
+      html, body { width: ${w}px; height: ${h}px; overflow: hidden; }
+      #out { display: block; width: ${w}px; height: ${h}px; }`;
+    document.head.appendChild(style);
+    return [w, h];
+  };
+  window.graphicsReady = true;
+</script>
+</head>
+<body><div id="out"></div></body>
+</html>

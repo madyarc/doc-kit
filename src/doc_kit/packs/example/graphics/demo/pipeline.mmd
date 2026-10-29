@@ -1,0 +1,4 @@
+flowchart LR
+  M["deck.md"] --> E["engine<br>(markdown-it, KaTeX, Mermaid, D3)"] --> S["slides"]
+  P["pack<br>math · graphics"]:::accent --> E
+  P --> L["LaTeX package"] --> W["paper"]

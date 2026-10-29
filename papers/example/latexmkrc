@@ -1,0 +1,3 @@
+# Find ex.sty (run `doc-kit sty example` first).
+ensure_path('TEXINPUTS', '../../src/doc_kit/packs/example/latex//');
+$pdf_mode = 1;
