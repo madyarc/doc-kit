@@ -6,6 +6,12 @@ const css = (name) => getComputedStyle(document.documentElement).getPropertyValu
 let uid = 0;
 
 export async function mountComponents(slideEl, ctx) {
+  // Single-file deck: images come from the bundle (SVG figures are fetched and inlined below instead).
+  if (window.docKitBundle) for (const img of slideEl.querySelectorAll('img[src]')) {
+    if (img.matches('.sk-figure img[data-pending]') && /\.svg(\?|#|$)/i.test(img.getAttribute('src'))) continue;
+    const u = window.docKitBundle.url(img.src);
+    if (u) img.src = u;
+  }
   for (const img of slideEl.querySelectorAll('.sk-figure img[data-pending]')) await figureFallback(img, ctx);
   const jobs = [];
   for (const el of slideEl.querySelectorAll('.sk-comp')) {

@@ -1,6 +1,7 @@
 """doc-kit command line.
 
     doc-kit serve TALK.md [--port 8000]       open in a browser at the printed URL; reloads on save
+    doc-kit bundle TALK.md [-o FILE]           one .html file: opens by double-click, no Python or server
     doc-kit build TALK.md [-o DIR] [--pdf]     standalone folder (host anywhere) and/or a PDF
     doc-kit pdf TALK.md [--steps] [--theme dark]
     doc-kit check TALK.md [--shots DIR] [--all-steps]
@@ -10,8 +11,8 @@
     doc-kit graphics PATH ... [--force]        .mmd -> .svg -> .pdf for papers
 
 A talk can live in any folder. Its `pack:` is a name (found on DOCKIT_PACKS or among the packs
-shipped with doc-kit) or a path relative to the talk file. check, pdf, math-check and graphics
-need: pip install "doc-kit[tools]" and Firefox.
+shipped with doc-kit) or a path relative to the talk file. bundle, check, pdf, math-check and
+graphics need: pip install "doc-kit[tools]" and Firefox.
 """
 from __future__ import annotations
 
@@ -47,6 +48,12 @@ def cmd_build(a):
         print(f"wrote {out}/ (serve it with any static web server, e.g. python3 -m http.server -d {out})")
     if a.pdf:
         print(f"wrote {build.build_pdf(talk, steps=a.steps, theme=a.theme)}")
+
+
+def cmd_bundle(a):
+    from .bundle import bundle
+    out = bundle(_talk(a.talk), a.out)
+    print(f"wrote {out} ({out.stat().st_size / 1e6:.1f} MB): open it in a browser, or copy it to another device")
 
 
 def cmd_pdf(a):
@@ -107,6 +114,11 @@ def main(argv=None):
     p.add_argument("--steps", action="store_true", help="PDF: one page per step")
     p.add_argument("--theme", default="light", choices=["light", "dark"])
     p.set_defaults(func=cmd_build)
+
+    p = sub.add_parser("bundle", help="one self-contained .html file (no Python or server needed to open it)")
+    p.add_argument("talk")
+    p.add_argument("-o", "--out", help="output file (default: <talk dir>/build/<name>.html)")
+    p.set_defaults(func=cmd_bundle)
 
     p = sub.add_parser("pdf", help="export a talk to PDF")
     p.add_argument("talk")

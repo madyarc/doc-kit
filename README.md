@@ -29,6 +29,7 @@ pip install "doc-kit[tools] @ git+https://github.com/madyarc/doc-kit"
 ```sh
 doc-kit serve path/to/talk.md          # then open the printed URL; the page reloads when you save
 doc-kit check path/to/talk.md          # every slide and step, light + dark: errors, overflow, pending data
+doc-kit bundle path/to/talk.md         # ONE .html file: double-click to present, on any device, offline
 doc-kit build path/to/talk.md --pdf    # standalone folder (host anywhere) + PDF, in <talk dir>/build/
 ```
 
@@ -53,6 +54,7 @@ URLs: `#/5` is slide 5, and `#/5.2` is slide 5 at step 2. `?theme=dark` forces a
 |---|---|
 | `doc-kit serve TALK.md [--port 8000]` | serve a talk from any folder, with live reload |
 | `doc-kit check TALK.md [--shots DIR] [--all-steps]` | headless check in both themes; exits 1 on errors or overflow |
+| `doc-kit bundle TALK.md [-o FILE]` | one self-contained `.html` (default `<talk dir>/build/<name>.html`) |
 | `doc-kit build TALK.md [-o DIR] [--pdf] [--no-html]` | standalone folder (talk + engine + packs) for any static host, and/or a PDF |
 | `doc-kit pdf TALK.md [--steps] [--theme dark]` | PDF, one page per slide or per click |
 | `doc-kit packs` | list the packs doc-kit can find |
@@ -60,8 +62,12 @@ URLs: `#/5` is slide 5, and `#/5.2` is slide 5 at step 2. `?theme=dark` forces a
 | `doc-kit sty PACK [--bundle DIR]` | the pack's LaTeX package (`<prefix>.sty`) |
 | `doc-kit graphics PATH ...` | `.mmd` → `.svg` → `.pdf` for papers, in the pack's theme |
 
-A built folder must be served over HTTP (e.g. `python3 -m http.server -d build/talk`), because
-browsers block decks opened as `file://`. For email, send the PDF.
+To present on another computer, use `doc-kit bundle`. It writes a single `.html` holding the engine,
+the pack, fonts, data and figures. Copy it over (USB, email, cloud drive) and open it in any modern
+browser: no Python, no server, no internet. Speaker view (`s`), themes and per-click steps all work.
+Re-run `bundle` after editing the talk. A built folder (`doc-kit build`), by contrast, must be served
+over HTTP (e.g. `python3 -m http.server -d build/talk`), because browsers block multi-file decks
+opened as `file://`.
 
 ## Talks and packs
 

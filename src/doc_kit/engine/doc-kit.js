@@ -1,13 +1,16 @@
 // doc-kit runtime. A deck page only needs:
 //   <body data-deck="deck.md"><script type="module" src="../../engine/doc-kit.js"></script>
 // Modes: default = present, ?speaker = speaker view, ?print / ?print=steps = PDF layout.
+// A single-file deck (doc-kit bundle) sets window.docKitBundle: every file the deck needs, served
+// from memory with the same layout as a built folder, so the page works when opened as file://.
 
 import { splitFrontMatter, expandUses, splitSlides } from './source.js';
 import { createRenderer, indexSteps, applyStep } from './render.js';
 import { mountComponents, rethemeComponents } from './components.js';
 import { expandMath, parseMacros } from './math.js';
 
-const ENGINE = new URL('./', import.meta.url);
+const bundle = window.docKitBundle || null;
+const ENGINE = bundle ? new URL('_dk/engine/', location.href) : new URL('./', import.meta.url);
 const VENDOR = new URL('vendor/', ENGINE);
 const params = new URLSearchParams(location.search);
 const MODE = params.has('print') ? 'print' : params.has('speaker') ? 'speaker' : 'present';
@@ -25,12 +28,21 @@ window.addEventListener('unhandledrejection', (e) => report.error(`promise: ${e.
 
 const loadScript = (url) => new Promise((resolve, reject) => {
   const s = document.createElement('script');
+  const text = bundle?.text(url);
+  if (text != null) { s.textContent = text; document.head.appendChild(s); return resolve(); }
   s.src = url;
   s.onload = resolve;
   s.onerror = () => reject(new Error(`failed to load ${url}`));
   document.head.appendChild(s);
 });
 const loadCss = (url) => new Promise((resolve) => {
+  const text = bundle?.text(url);
+  if (text != null) {
+    const st = document.createElement('style');
+    st.textContent = text;
+    document.head.appendChild(st);
+    return resolve();
+  }
   const l = document.createElement('link');
   l.rel = 'stylesheet';
   l.href = url;
@@ -180,8 +192,8 @@ function navigator(deck, onChange) {
   const st = { i: 0, s: 0 };
   const n = deck.slides.length;
   const go = (i, s, quiet) => {
-    i = Math.max(0, Math.min(n - 1, i | 0));
-    s = Math.max(0, Math.min(deck.slides[i].steps, s | 0));
+    i = Math.max(0, Math.min(n - 1, Math.trunc(i) || 0));  // (Infinity | 0 is 0, so End needs trunc)
+    s = Math.max(0, Math.min(deck.slides[i].steps, Math.trunc(s) || 0));
     st.i = i; st.s = s;
     onChange(st, quiet);
   };
@@ -214,8 +226,23 @@ function keyHandler(nav, extra = {}) {
   };
 }
 
+// The speaker window and the slides talk over a BroadcastChannel and, as a fallback for file://
+// pages (which some browsers give separate origins), over postMessage between opener and popup.
+let speakerWin = null;
 function channelFor(deck) {
-  try { return new BroadcastChannel(`doc-kit:${deck.deckUrl}`); } catch { return null; }
+  let bc = null;
+  try { bc = new BroadcastChannel(`doc-kit:${deck.deckUrl}`); } catch { /* unsupported */ }
+  const peers = () => [window.opener, speakerWin].filter((w) => w && !w.closed && w !== window);
+  return {
+    postMessage(m) {
+      bc?.postMessage(m);
+      for (const w of peers()) try { w.postMessage({ docKit: m }, '*'); } catch { /* closed */ }
+    },
+    set onmessage(f) {
+      if (bc) bc.onmessage = f;
+      window.addEventListener('message', (e) => { if (e.data?.docKit && peers().includes(e.source)) f({ data: e.data.docKit }); });
+    },
+  };
 }
 
 function parseHash() {
@@ -243,7 +270,7 @@ async function present(deck) {
   help.innerHTML = '<b>Keys</b><br>→ / space: next · ←: back · Home/End<br>number + Enter: go to slide<br>t: light/dark · s: speaker view · f: fullscreen · ?: this help';
   const extra = {
     t: () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', deck),
-    s: () => window.open(`${location.pathname}?speaker${location.hash}`, 'doc-kit-speaker', 'width=1280,height=800'),
+    s: () => (speakerWin = window.open(`${location.pathname}?speaker${location.hash}`, 'doc-kit-speaker', 'width=1280,height=800')),
     f: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()),
     '?': () => (help.hidden = !help.hidden),
   };

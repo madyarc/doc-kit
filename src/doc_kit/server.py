@@ -48,6 +48,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     root: pathlib.Path = pathlib.Path(".")
     pack_map: dict[str, pathlib.Path] = {}
     quiet = True
+    record: dict[str, pathlib.Path] | None = None  # url path -> file, for every file served (doc-kit bundle)
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
@@ -70,6 +71,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
     def translate_path(self, path):
+        fs = self._fs_path(path)
+        if self.record is not None and pathlib.Path(fs).is_file():
+            self.record[urllib.parse.unquote(urllib.parse.urlsplit(path).path).lstrip("/")] = pathlib.Path(fs)
+        return fs
+
+    def _fs_path(self, path):
         path = urllib.parse.unquote(urllib.parse.urlsplit(path).path)
         parts = [p for p in path.split("/") if p and p not in (".", "..")]
         if parts[:2] == ["_dk", "engine"]:
@@ -92,13 +99,13 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 
 def start(talk: str | pathlib.Path | None = None, root: str | pathlib.Path | None = None, port: int = 0,
-          quiet: bool = True, host: str = "127.0.0.1", packs: dict | None = None):
+          quiet: bool = True, host: str = "127.0.0.1", packs: dict | None = None, record: dict | None = None):
     """Serve a talk file (and its folder), or just a folder. `packs` adds name -> folder mappings.
-    Returns (server, base_url)."""
+    `record`, if given, is filled with url path -> file for every file served. Returns (server, base_url)."""
     talk_path = pathlib.Path(talk).resolve() if talk else None
     root_path = pathlib.Path(root).resolve() if root else (talk_path.parent if talk_path else pathlib.Path.cwd())
     pack_map = {**(packs_mod.talk_packs(talk_path) if talk_path else {}), **(packs or {})}
-    handler = type("TalkHandler", (Handler,), {"talk": talk_path, "root": root_path, "pack_map": pack_map, "quiet": quiet})
+    handler = type("TalkHandler", (Handler,), {"talk": talk_path, "root": root_path, "pack_map": pack_map, "quiet": quiet, "record": record})
     srv = Server((host, port), functools.partial(handler, directory=str(root_path)))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv, f"http://{host}:{srv.server_address[1]}/"
