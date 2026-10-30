@@ -225,6 +225,10 @@ html, body { margin: 0; height: 100%; background: var(--sk-page); color: var(--s
 
 .sk-fatal { margin: 40px; padding: 20px; white-space: pre-wrap; font: 15px/1.5 var(--sk-font-mono); color: #d03b3b; }
 tr.sk-hidden > td, tr.sk-hidden > th { border-color: transparent; }
+/* KaTeX draws fraction bars, boxes and over/underlines as ~0.04em borders; scaled-down slides lose
+   them, so keep each at least one screen pixel (--sk-hair = 1px / slide scale, set by fit()). */
+.katex .frac-line, .katex .overline-line, .katex .underline-line, .katex .hline, .katex .hdashline { border-bottom-width: max(0.04em, var(--sk-hair, 1px)) !important; }
+.katex .fbox, .katex .fcolorbox { border-width: max(0.04em, var(--sk-hair, 1px)) !important; }
 /* <!-- slide class=dense --> for slides that need a little more room */
 .sk-slide.dense { font-size: calc(var(--sk-font-size) * 0.88); }
 /* Content never shrinks to fit: overflow should be visible (and caught by tools/check.py). */

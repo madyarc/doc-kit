@@ -186,6 +186,8 @@ function fit(viewport, deckEl, w = SLIDE_W, h = SLIDE_H) {
   const r = viewport.getBoundingClientRect();
   const k = Math.min(r.width / w, r.height / h);
   deckEl.style.transform = `translate(${(r.width - w * k) / 2}px, ${(r.height - h * k) / 2}px) scale(${k})`;
+  // Hairlines (KaTeX fraction bars, \boxed) stay at least one screen pixel when the slide is scaled down.
+  deckEl.style.setProperty('--sk-hair', `${Math.max(1, Math.ceil(1 / k))}px`);
 }
 
 function navigator(deck, onChange) {
