@@ -250,6 +250,50 @@ function parseHash() {
   return m ? [+m[1] - 1, +(m[2] || 0)] : [0, 0];
 }
 
+/* ------------------------------------------------------------------ laser */
+
+// Laser pointer (key l): a red dot replaces the cursor over the slide. Its position is sent in slide
+// coordinates (0..1) over the speaker channel, so pointing in the speaker view's current slide shows
+// the dot on the shared slides too.
+function laserPointer(deck, nav, chan, area) {
+  const dot = document.createElement('div');
+  dot.className = 'sk-laser';
+  dot.hidden = true;
+  document.body.appendChild(dot);
+  let on = false, pt = null, frame = 0, pending = null;
+  const draw = () => {
+    const el = deck.slides[nav.st.i].el;
+    if (!pt || pt.i !== nav.st.i || !el) { dot.hidden = true; return; }
+    const r = el.getBoundingClientRect();
+    dot.style.setProperty('--d', `${Math.max(10, (18 * r.width) / SLIDE_W)}px`);
+    dot.style.left = `${r.left + pt.x * r.width}px`;
+    dot.style.top = `${r.top + pt.y * r.height}px`;
+    dot.hidden = false;
+  };
+  const send = (p) => {
+    pending = p;
+    if (!frame) frame = requestAnimationFrame(() => { frame = 0; chan?.postMessage({ type: 'laser', p: pending }); });
+  };
+  area.addEventListener('mousemove', (e) => {
+    if (!on) return;
+    const r = deck.slides[nav.st.i].el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    pt = x >= 0 && x <= 1 && y >= 0 && y <= 1 ? { i: nav.st.i, x, y } : null;
+    draw();
+    send(pt);
+  });
+  area.addEventListener('mouseleave', () => { if (on) { pt = null; draw(); send(null); } });
+  return {
+    toggle() {
+      on = !on;
+      document.body.classList.toggle('sk-laser-on', on);
+      if (!on) { pt = null; draw(); send(null); }
+    },
+    receive(p) { pt = p; draw(); },
+    refresh: draw,
+  };
+}
+
 async function present(deck) {
   document.body.classList.add('sk-mode-present');
   document.body.innerHTML = '<div class="sk-viewport"><div class="sk-deck"></div></div><div class="sk-progress"><i></i></div><div class="sk-help" hidden></div>';
@@ -258,19 +302,23 @@ async function present(deck) {
   await mountAll(deck, deckEl);
   const chan = channelFor(deck);
   const bar = document.querySelector('.sk-progress i');
+  let lz = null;
   const nav = navigator(deck, (st, quiet) => {
     showSlide(deck, st.i, st.s);
+    lz?.refresh();
     history.replaceState(null, '', `#/${st.i + 1}${st.s ? '.' + st.s : ''}`);
     bar.style.width = `${(100 * (st.i + 1)) / deck.slides.length}%`;
     if (!quiet) chan?.postMessage({ type: 'go', i: st.i, s: st.s });
   });
   deck.onRetheme = () => showSlide(deck, nav.st.i, nav.st.s);
-  chan && (chan.onmessage = (e) => e.data.type === 'go' && nav.go(e.data.i, e.data.s, true));
+  lz = laserPointer(deck, nav, chan, viewport);
+  chan && (chan.onmessage = (e) => (e.data.type === 'go' ? nav.go(e.data.i, e.data.s, true) : e.data.type === 'laser' && lz.receive(e.data.p)));
   const help = document.querySelector('.sk-help');
-  help.innerHTML = '<b>Keys</b><br>→ / space: next · ←: back · Home/End<br>number + Enter: go to slide<br>t: light/dark · s: speaker view · f: fullscreen · ?: this help';
+  help.innerHTML = '<b>Keys</b><br>→ / space: next · ←: back · Home/End<br>number + Enter: go to slide<br>t: light/dark · s: speaker view · l: laser pointer · f: fullscreen · ?: this help';
   const extra = {
     t: () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', deck),
     s: () => (speakerWin = window.open(`${location.pathname}?speaker${location.hash}`, 'doc-kit-speaker', 'width=1280,height=800')),
+    l: () => lz.toggle(),
     f: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()),
     '?': () => (help.hidden = !help.hidden),
   };
@@ -360,8 +408,10 @@ async function speaker(deck) {
   const notesEl = document.querySelector('.sk-spk-notes');
   const pos = document.querySelector('.sk-spk-pos');
   const chan = channelFor(deck);
+  let lz = null;
   const nav = navigator(deck, (st, quiet) => {
     showSlide(deck, st.i, st.s);
+    lz?.refresh();
     const nx = nav.peek();
     clones.forEach((c, k) => c.classList.toggle('sk-active', nx && k === nx[0]));
     if (nx) applyStep(clones[nx[0]], nx[1]);
@@ -370,9 +420,13 @@ async function speaker(deck) {
     pos.textContent = `${st.i + 1}/${deck.slides.length} · step ${st.s}/${deck.slides[st.i].steps}`;
     if (!quiet) chan?.postMessage({ type: 'go', i: st.i, s: st.s });
   });
-  chan && (chan.onmessage = (e) => e.data.type === 'go' && nav.go(e.data.i, e.data.s, true));
-  document.addEventListener('keydown', keyHandler(nav, { t: () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', deck) }));
-  const refit = () => { fit(curVp, curDeck); fit(nextVp, nextDeck); };
+  lz = laserPointer(deck, nav, chan, curVp);
+  chan && (chan.onmessage = (e) => (e.data.type === 'go' ? nav.go(e.data.i, e.data.s, true) : e.data.type === 'laser' && lz.receive(e.data.p)));
+  document.addEventListener('keydown', keyHandler(nav, {
+    t: () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', deck),
+    l: () => lz.toggle(),
+  }));
+  const refit = () => { fit(curVp, curDeck); fit(nextVp, nextDeck); lz.refresh(); };
   window.addEventListener('resize', refit);
   refit();
 

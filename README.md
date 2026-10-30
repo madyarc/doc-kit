@@ -43,6 +43,7 @@ Try it on the example: `doc-kit serve talks/example/talk.md`.
 | number, then Enter | go to that slide |
 | `t` | light / dark |
 | `s` | speaker view in a new window (notes, next step, timer), kept in sync |
+| `l` | laser pointer: a red dot replaces the cursor (also from the speaker view's current slide) |
 | `f` | fullscreen |
 | `?` | key help |
 
